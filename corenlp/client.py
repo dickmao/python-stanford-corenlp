@@ -54,7 +54,6 @@ class RobustService(object):
         self.endpoint = endpoint
 
         self.server = None
-        self.is_active = False
 
     def is_alive(self):
         try:
@@ -71,10 +70,9 @@ class RobustService(object):
             self.server.kill()
         if self.stop_cmd:
             subprocess.run(self.stop_cmd, check=True)
-        self.is_active = False
 
     def __enter__(self):
-        self.start()
+        self.ensure_alive()
         return self
 
     def __exit__(self, _, __, ___):
@@ -82,11 +80,10 @@ class RobustService(object):
 
     def ensure_alive(self):
         # Check if the service is active and alive
-        if self.is_active:
-            try:
-                return self.is_alive()
-            except ShouldRetryException:
-                pass
+        try:
+            return self.is_alive()
+        except ShouldRetryException:
+            pass
 
         # If not, try to start up the service.
         if self.server is None:
@@ -106,8 +103,6 @@ class RobustService(object):
             else:
                 raise PermanentlyFailedException("Timed out waiting for service to come alive.")
 
-        # At this point we are guaranteed that the service is alive.
-        self.is_active = True
 
 class CoreNLPClient(RobustService):
     """
@@ -116,16 +111,17 @@ class CoreNLPClient(RobustService):
     DEFAULT_ANNOTATORS = "tokenize ssplit lemma pos ner depparse".split()
     DEFAULT_PROPERTIES = {}
 
-    def __init__(self, start_server=True, endpoint="http://localhost:9000", timeout=5000, annotators=DEFAULT_ANNOTATORS, properties=DEFAULT_PROPERTIES):
+    def __init__(self, start_cmd="", start_server=True, endpoint="http://localhost:9000", timeout=5000, annotators=DEFAULT_ANNOTATORS, properties=DEFAULT_PROPERTIES):
         if start_server:
             host, port = urlparse(endpoint).netloc.split(":")
             assert host == "localhost", "If starting a server, endpoint must be localhost"
 
             assert os.getenv("CORENLP_HOME") is not None, "Please define $CORENLP_HOME where your CoreNLP Java checkout is"
-            start_cmd = "java -cp '{corenlp_home}/*'  edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port {port} -timeout {timeout}".format(
-                corenlp_home=os.getenv("CORENLP_HOME"),
-                port=port,
-                timeout=timeout)
+            if not start_cmd:
+                start_cmd = "java -cp '{corenlp_home}/*'  edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port {port} -timeout {timeout}".format(
+                    corenlp_home=os.getenv("CORENLP_HOME"),
+                    port=port,
+                    timeout=timeout)
             stop_cmd = None
         else:
             start_cmd = stop_cmd = None

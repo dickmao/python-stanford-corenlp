@@ -8,3 +8,4 @@ from corenlp_protobuf import SentenceFragment, TokenLocation
 from corenlp_protobuf import MapStringString, MapIntString
 from .client import CoreNLPClient, AnnotationException, TimeoutException
 from .annotator import Annotator
+from .stanford import WordTokenizer, SentTokenizer
