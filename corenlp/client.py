@@ -114,8 +114,6 @@ class CoreNLPClient(RobustService):
     def __init__(self, start_cmd="", corenlp_home=os.getenv("CORENLP_HOME"), start_server=True, endpoint="http://localhost:9000", timeout=5000, annotators=DEFAULT_ANNOTATORS, properties=DEFAULT_PROPERTIES):
         if start_server:
             host, port = urlparse(endpoint).netloc.split(":")
-            assert host == "localhost", "If starting a server, endpoint must be localhost"
-
             if not start_cmd:
                 start_cmd = "java -cp '{home}/*'  edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port {port} -timeout {timeout}".format(
                     home=corenlp_home,
